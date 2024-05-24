@@ -1,0 +1,346 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <sstream>
+
+using namespace std;
+
+void initializeRegisters(const string& filename, vector<int>& registers) {
+    ifstream file(filename);
+    string line;
+    int index = 0;
+    while (getline(file, line) && index < 32) {
+        try {
+            registers[index++] = stoi(line);
+        }
+        catch (const invalid_argument& e) {
+            cout << "Invalid integer in file: " << line << endl;
+        }
+    }
+    file.close();
+}
+
+void initializeMemory(const string& filename, vector<int>& memory) {
+    ifstream file(filename);
+    string line;
+    int index = 0;
+    while (getline(file, line) && index < 256) {
+        memory[index++] = stoi(line);
+    }
+    file.close();
+}
+
+void loadProgram(const string& filename, vector<string>& program) {
+    ifstream file(filename);
+    string line;
+    while (getline(file, line)) {
+        program.push_back(line);
+    }
+    file.close();
+}
+int getRegisterNumber(const string& reg) {
+    if (reg[0] == '$') {
+        return stoi(reg.substr(1));
+    }
+    else {
+        throw invalid_argument("Invalid register format");
+    }
+}
+
+int stringToInt(string& reg) {
+    if (reg[0] == '$' && reg[1] == 't') {
+        return atoi(reg.substr(2).c_str());
+    }
+    else if (reg[0] == '$' && reg[1] != 't') {
+        return atoi(reg.substr(1).c_str());
+    }
+    else if (reg[0] == '0' && reg[1] != 'x') {
+        return 0;
+    }
+
+    else {
+        throw invalid_argument("Invalid register format");
+    }
+}
+
+
+void executeInstruction(const string& instruction, vector<int>& registers, vector<int>& memory, vector<string>& program,int& pc) {
+    istringstream iss(instruction);
+    vector<string> tokens;
+    string token;
+  
+    while (iss >> token) {
+        tokens.push_back(token);
+    }
+
+    if (tokens.size() < 3) {
+        cout << "Invalid instruction format" << endl;
+        return;
+    }
+
+    try {
+        if (tokens[0] == "addi") {
+            if (tokens.size() != 4) {
+                cout << "Invalid number of arguments for addi" << endl;
+                return;
+            }
+            int rd = stringToInt(tokens[1]); // Extract the register number
+            int rs = stringToInt(tokens[2]);
+            int immediate=0;
+            string a = tokens[3];
+            if (a[0] == '0' && a[1] == 'x') {
+                immediate = 0;
+            }
+            else
+            {
+                immediate = stoi(tokens[3]);
+            }
+
+            string b= tokens[2];
+            if (b[0] == '$' && b[1] == '0')
+            {
+                registers[rd] = 0 + immediate;
+            }
+            else
+            {
+
+
+                registers[rd] = registers[rs] + immediate;
+            }
+        }
+        else if (tokens[0] == "add") {
+            if (tokens.size() != 4) {
+                cout << "Invalid number of arguments for add" << endl;
+                return;
+            }
+            int rd = stringToInt(tokens[1]); // Extract the register number
+            int rs = stringToInt(tokens[2]);
+            int rt = stringToInt(tokens[3]);
+            string b = tokens[2];
+            if (b[0] == '$' && b[1] == '0')
+            {
+                registers[rd] = 0 + registers[rt];
+            }
+            else
+            {
+
+
+                registers[rd] = registers[rs] + registers[rt];
+            }
+           // registers[rd] = registers[rs] + registers[rt];
+        }
+        else if (tokens[0] == "sub") {
+            if (tokens.size() != 4) {
+                cout << "Invalid number of arguments for sub" << endl;
+                return;
+            }
+            int rd = stringToInt(tokens[1]); // Extract the register number
+            int rs = stringToInt(tokens[2]);
+            int rt = stringToInt(tokens[3]);
+            string b = tokens[2];
+            if (b[0] == '$' && b[1] == '0')
+            {
+                registers[rd] = 0 - registers[rt];
+            }
+            else
+            {
+
+
+                registers[rd] = registers[rs] - registers[rt];
+            }
+           // registers[rd] = registers[rs] - registers[rt];
+        }
+        
+        else if (tokens[0] == "and") {
+            if (tokens.size() != 4) {
+                cout << "Invalid number of arguments for and" << endl;
+                return;
+            }
+            int rd = stringToInt(tokens[1]); // Extract the register number
+            int rs = stringToInt(tokens[2]);
+            int rt = stringToInt(tokens[3]);
+            string b = tokens[2];
+            if (b[0] == '$' && b[1] == '0')
+            {
+                registers[rd] = 0 & registers[rt];
+            }
+            else
+            {
+
+
+                registers[rd] = registers[rs] & registers[rt];
+            }
+         //   registers[rd] = (registers[rs]& registers[rt]);
+        }
+        else if (tokens[0] == "or") {
+            if (tokens.size() != 4) {
+                cout << "Invalid number of arguments for or" << endl;
+                return;
+            }
+            int rd = stringToInt(tokens[1]); // Extract the register number
+            int rs = stringToInt(tokens[2]);
+            int rt = stringToInt(tokens[3]);
+            string b = tokens[2];
+            if (b[0] == '$' && b[1] == '0')
+            {
+                registers[rd] = 0 | registers[rt];
+            }
+            else
+            {
+
+
+                registers[rd] = registers[rs] | registers[rt];
+            }
+            //registers[rd] = (registers[rs] | registers[rt]);
+        }
+        else if (tokens[0] == "slt") {
+            if (tokens.size() != 4) {
+                cout << "Invalid number of arguments for slt" << endl;
+                return;
+            }
+            int rd = stringToInt(tokens[1]); // Extract the register number
+            int rs = stringToInt(tokens[2]);
+            int rt = stringToInt(tokens[3]);
+            string b = tokens[2];
+            if (b[0] == '$' && b[1] == '0')
+            {
+                registers[rs] = 0;
+            }
+           
+            if(registers[rs]< registers[rt])
+            {
+                registers[rd] = 1;
+            }
+            else
+            {
+                registers[rd] = 0;
+            }
+        }
+        else if (tokens[0] == "lw") {
+            if (tokens.size() != 3) {
+                cout << "Invalid number of arguments for lw" << endl;
+                return;
+            }
+            int rt = stringToInt(tokens[1]); // Extract the register number
+            int offset = stoi(tokens[2]);
+            // Simulating memory access
+            registers[rt] = memory[offset];
+        }
+        else if (tokens[0] == "sw") {
+            if (tokens.size() != 3) {
+                cout << "Invalid number of arguments for sw" << endl;
+                return;
+            }
+            int rt = stringToInt(tokens[1]); // Extract the register number
+            int offset = stoi(tokens[2]);
+            // Simulating memory access
+            memory[offset] = registers[rt];
+        }
+        else if (tokens[0] == "beq") {
+            if (tokens.size() != 4) {
+                cout << "Invalid number of arguments for beq" << endl;
+                return;
+            }
+            int rs = stringToInt(tokens[1]);
+            int rt = stringToInt(tokens[2]);
+            string offset = tokens[3];
+
+            if (registers[rs] == registers[rt]) {
+                bool labelFound = false;
+                for (int i = pc; i < program.size(); i++) {
+                    istringstream iss(program[i]);
+                    string firstToken;
+                    iss >> firstToken;
+                    if (firstToken == (offset + ':')) {
+                        pc = i ; // -1 to compensate for the pc increment after the call
+                        labelFound = true;
+                        break;
+                    }
+                }
+                if (!labelFound) {
+                    cout << "Label not found: " << offset << endl;
+                }
+            }
+            }
+
+        else if (tokens[0] == "j") {
+            if (tokens.size() != 2) {
+                cout << "Invalid number of arguments for j" << endl;
+                return;
+            }
+            int target = stoi(tokens[1]);
+            if (target < 0 || target >= program.size()) {
+                cout << "Jump target out of range: " << target << endl;
+                return;
+            }
+            pc = target - 1;  // -1 because the pc will be incremented after this function call
+        }
+        
+        else {
+            cout << "Unknown instruction: " << instruction << endl;
+        }
+    }
+    catch (const std::invalid_argument& e) {
+        cout << "Invalid argument in instruction: " << instruction << endl;
+    }
+    catch (const std::out_of_range& e) {
+        cout << "Out of range value in instruction: " << instruction << endl;
+    }
+}
+
+void setAllValuesToZero(vector<int>& vec) {
+    for (int& value : vec) {
+        value = 0;
+    }
+}
+
+int main() 
+{
+    vector<int> registers(32, 0);
+    vector<int> memory(256, 0);
+
+    // Read register file
+    string regfile = "Reg_Init_File.txt";
+    initializeRegisters(regfile, registers);
+
+    // Read memory file
+    string memfile = "Mem_Init_File.txt";
+    initializeMemory(memfile, memory);
+
+    // Read the program from the file
+    string progfile = "D:\\mips\\mipschecker.asm";
+    vector<string> program;
+    loadProgram(progfile, program);
+
+   
+
+    int pc = 0;
+    while (pc < program.size()) {
+        cout << "Executing instruction at pc=" << pc << ": " << program[pc] << endl;
+
+        executeInstruction(program[pc], registers, memory, program, pc);
+
+        pc++;
+        if (pc < 0 || pc >= program.size()) {
+            cout << "PC out of range, stopping execution." << endl;
+            break;
+        }
+    }
+
+
+
+    // Display the contents of registers and memory
+    for (int i = 0; i < registers.size(); i++) {
+        cout << "$" << i << ": " << registers[i] << endl;
+    }
+
+    cout << "Memory:" << endl;
+    for (int i = 0; i < memory.size(); i++) {
+        cout << "Mem[" << i << "]: " << memory[i] << endl;
+    }
+
+    cin.get(); // Wait for user input before closing
+ 
+   return 0;
+
+}
